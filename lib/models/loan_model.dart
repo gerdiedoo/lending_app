@@ -5,6 +5,7 @@ class Loan {
   final double principalAmount;
   final String status;
   final DateTime createdAt;
+  final DateTime loanDate;
   final int durationMonths;
 
   Loan({
@@ -14,24 +15,33 @@ class Loan {
     required this.principalAmount,
     required this.status,
     required this.createdAt,
+    required this.loanDate,
     required this.durationMonths,
   });
 
   /// The date by which the loan should be fully repaid.
+  /// Calculated from loanDate + durationMonths.
   DateTime get dueDate {
-    final m = createdAt.month + durationMonths;
-    return DateTime(createdAt.year + (m - 1) ~/ 12, ((m - 1) % 12) + 1, createdAt.day);
+    final m = loanDate.month + durationMonths;
+    return DateTime(loanDate.year + (m - 1) ~/ 12, ((m - 1) % 12) + 1, loanDate.day);
   }
 
   factory Loan.fromJson(Map<String, dynamic> json) {
+    final createdAt = DateTime.parse(json['created_at']);
+    // loan_date is the new editable column; fall back to created_at for old rows
+    final loanDate = json['loan_date'] != null
+        ? DateTime.parse(json['loan_date'])
+        : createdAt;
+
     return Loan(
-      id: json['id'],
-      borrowerName: json['borrower_name'],
-      lenderName: json['lender_name'] ?? '',
+      id:              json['id'],
+      borrowerName:    json['borrower_name'],
+      lenderName:      json['lender_name'] ?? '',
       principalAmount: (json['principal_amount'] as num).toDouble(),
-      status: json['status'],
-      createdAt: DateTime.parse(json['created_at']),
-      durationMonths: (json['duration_months'] as num?)?.toInt() ?? 0,
+      status:          json['status'],
+      createdAt:       createdAt,
+      loanDate:        loanDate,
+      durationMonths:  (json['duration_months'] as num?)?.toInt() ?? 0,
     );
   }
 }

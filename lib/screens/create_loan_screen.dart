@@ -139,6 +139,7 @@ class _CreateLoanScreenState extends State<CreateLoanScreen> {
         'monthly_installment' : _monthlyInstallment,
         'status'              : 'Active',
         'created_at'          : loanDateUtc.toIso8601String(),
+        'loan_date'           : loanDateUtc.toIso8601String(),
       });
 
       if (mounted) {
