@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'constants/colors.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/main_shell.dart';
 import 'screens/login_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -10,7 +10,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: ".env");
-  // Initialize Supabase using your specific Project URL and Anon API key
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
@@ -44,16 +43,15 @@ class MyApp extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
-              body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              body: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
             );
           }
-          
+
           final session = snapshot.data?.session;
-          if (session != null) {
-            return const DashboardScreen();
-          } else {
-            return const LoginScreen();
-          }
+          // Route to MainShell (which owns the bottom nav) when logged in
+          return session != null ? const MainShell() : const LoginScreen();
         },
       ),
     );

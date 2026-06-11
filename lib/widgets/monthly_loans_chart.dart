@@ -3,20 +3,19 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/colors.dart';
 
-class MonthlyCollectionsChart extends StatefulWidget {
-  const MonthlyCollectionsChart({super.key});
+class MonthlyLoansChart extends StatefulWidget {
+  const MonthlyLoansChart({super.key});
 
   @override
-  State<MonthlyCollectionsChart> createState() =>
-      _MonthlyCollectionsChartState();
+  State<MonthlyLoansChart> createState() => _MonthlyLoansChartState();
 }
 
-class _MonthlyCollectionsChartState extends State<MonthlyCollectionsChart> {
+class _MonthlyLoansChartState extends State<MonthlyLoansChart> {
   static const List<String> _monthLabels = [
     'J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'
   ];
 
-  late Future<List<Map<String, dynamic>>> _dataFuture;
+  late Future<Map<int, double>> _dataFuture;
 
   @override
   void initState() {
@@ -24,16 +23,29 @@ class _MonthlyCollectionsChartState extends State<MonthlyCollectionsChart> {
     _dataFuture = _fetchData();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchData() {
-    return Supabase.instance.client
-        .from('monthly_collections')
-        .select('*')
-        .order('month_number', ascending: true);
+  /// Fetches all loans for the current year and aggregates
+  /// the total principal amount issued per month.
+  Future<Map<int, double>> _fetchData() async {
+    final currentYear = DateTime.now().year;
+
+    final response = await Supabase.instance.client
+        .from('loans')
+        .select('principal_amount, created_at')
+        .gte('created_at', '$currentYear-01-01')
+        .lte('created_at', '$currentYear-12-31');
+
+    final Map<int, double> totals = {};
+    for (final row in response) {
+      final month = DateTime.parse(row['created_at']).month;
+      final amount = (row['principal_amount'] as num).toDouble();
+      totals[month] = (totals[month] ?? 0) + amount;
+    }
+    return totals;
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
+    return FutureBuilder<Map<int, double>>(
       future: _dataFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -48,18 +60,11 @@ class _MonthlyCollectionsChartState extends State<MonthlyCollectionsChart> {
           );
         }
 
-        final data = snapshot.data!;
-        final currentMonth = DateTime.now().month; // 1–12
+        final monthTotals = snapshot.data!;
+        final currentMonth = DateTime.now().month;
 
-        // Build a map from month_number → total_collected for quick lookup
-        final Map<int, double> monthTotals = {
-          for (final e in data)
-            (e['month_number'] as int): (e['total_collected'] as num).toDouble()
-        };
-
-        // Build all 12 bar groups, using 0 for months with no data
         final barGroups = List.generate(12, (index) {
-          final monthNum = index + 1; // 1–12
+          final monthNum = index + 1;
           final value = monthTotals[monthNum] ?? 0.0;
           final isCurrentMonth = monthNum == currentMonth;
 
@@ -81,7 +86,6 @@ class _MonthlyCollectionsChartState extends State<MonthlyCollectionsChart> {
           );
         });
 
-        // Determine max Y for scaling, with a sensible minimum
         final maxY = monthTotals.values.isEmpty
             ? 10.0
             : monthTotals.values.reduce((a, b) => a > b ? a : b) * 1.25;
@@ -97,7 +101,7 @@ class _MonthlyCollectionsChartState extends State<MonthlyCollectionsChart> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Monthly Collections',
+                'Monthly Loans',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
