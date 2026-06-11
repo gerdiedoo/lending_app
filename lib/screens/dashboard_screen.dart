@@ -27,7 +27,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: const [
-              DashboardHeader(),
+              Header(),
               SizedBox(height: 24),
               PortfolioCard(),
               SizedBox(height: 24),
