@@ -14,7 +14,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-  bool _isSignUp = false;
 
   @override
   void dispose() {
@@ -28,25 +27,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      if (_isSignUp) {
-        // Sign Up Flow
-        await Supabase.instance.client.auth.signUp(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Registration successful! Please login.')),
-          );
-          setState(() => _isSignUp = false);
-        }
-      } else {
-        // Sign In Flow
-        await Supabase.instance.client.auth.signInWithPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-      }
+      // Sign In Flow Only
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      // Note: No manual navigation needed. The StreamBuilder in main.dart 
+      // will automatically push the user to the Dashboard upon success.
     } on AuthException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -56,7 +43,10 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('An unexpected network error occurred'), backgroundColor: AppColors.danger),
+          const SnackBar(
+            content: Text('An unexpected network error occurred'), 
+            backgroundColor: AppColors.danger
+          ),
         );
       }
     } finally {
@@ -76,17 +66,25 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.account_balance_wallet_rounded, size: 80, color: AppColors.primary),
-                const SizedBox(height: 16),
-                Text(
-                  _isSignUp ? 'Create Admin Account' : 'Lending Dashboard',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                const Icon(
+                  Icons.account_balance_wallet_rounded, 
+                  size: 80, 
+                  color: AppColors.primary
                 ),
-                Text(
-                  _isSignUp ? 'Get started by configuring your portal credentials' : 'Secure Manager Portal Access',
+                const SizedBox(height: 16),
+                const Text(
+                  'Lending Dashboard',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 28, 
+                    fontWeight: FontWeight.bold, 
+                    color: Colors.white
+                  ),
+                ),
+                const Text(
+                  'Secure Manager Portal Access',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
                 const SizedBox(height: 40),
                 
@@ -101,11 +99,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
                     filled: true,
                     fillColor: AppColors.surface,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12), 
+                      borderSide: BorderSide.none
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12), 
+                      borderSide: BorderSide.none
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12), 
+                      borderSide: const BorderSide(color: AppColors.primary)
+                    ),
                   ),
-                  validator: (value) => value == null || !value.contains('@') ? 'Enter a valid email' : null,
+                  validator: (value) => 
+                    value == null || !value.contains('@') ? 'Enter a valid email' : null,
                 ),
                 const SizedBox(height: 16),
                 
@@ -120,11 +128,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     prefixIcon: const Icon(Icons.lock_outline_rounded, color: Colors.grey),
                     filled: true,
                     fillColor: AppColors.surface,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12), 
+                      borderSide: BorderSide.none
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12), 
+                      borderSide: BorderSide.none
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12), 
+                      borderSide: const BorderSide(color: AppColors.primary)
+                    ),
                   ),
-                  validator: (value) => value == null || value.length < 6 ? 'Password must be at least 6 characters' : null,
+                  validator: (value) => 
+                    value == null || value.length < 6 ? 'Password is required' : null,
                 ),
                 const SizedBox(height: 24),
                 
@@ -134,21 +152,27 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)
+                    ),
                   ),
                   child: _isLoading
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text(_isSignUp ? 'REGISTER' : 'LOG IN', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                ),
-                const SizedBox(height: 16),
-                
-                // Toggle mode
-                TextButton(
-                  onPressed: () => setState(() => _isSignUp = !_isSignUp),
-                  child: Text(
-                    _isSignUp ? 'Already have an account? Sign In' : "Don't have an admin portal? Create One",
-                    style: const TextStyle(color: AppColors.primary),
-                  ),
+                      ? const SizedBox(
+                          height: 20, 
+                          width: 20, 
+                          child: CircularProgressIndicator(
+                            color: Colors.white, 
+                            strokeWidth: 2
+                          )
+                        )
+                      : const Text(
+                          'LOG IN', 
+                          style: TextStyle(
+                            fontSize: 16, 
+                            fontWeight: FontWeight.bold, 
+                            color: Colors.white
+                          )
+                        ),
                 ),
               ],
             ),

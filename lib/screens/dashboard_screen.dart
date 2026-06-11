@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lending_app/widgets/monthly_collections_chart.dart';
 import '../constants/colors.dart';
 import '../widgets/header.dart';
 import '../widgets/portfolio_card.dart';
@@ -26,22 +27,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Header(),
-              SizedBox(height: 24),
-              PortfolioCard(),
-              SizedBox(height: 24),
-              Text('Quick Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              SizedBox(height: 16),
-              QuickActions(),
-              SizedBox(height: 24),
-              FinancialStatsRow(),
-              SizedBox(height: 16),
-              CollectionRateCard(),
-              SizedBox(height: 24),
-              RecentLoansList(),
-              SizedBox(height: 24),
-              OverdueAlert(),
+            children: [
+              const Header(),
+              const SizedBox(height: 24),
+              const PortfolioCard(),
+              const SizedBox(height: 24),
+              const Text('Quick Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 16),
+              const QuickActions(),
+              const SizedBox(height: 24),
+              const FinancialStatsRow(),
+              const SizedBox(height: 16),
+              const CollectionRateCard(),
+              const SizedBox(height: 16),
+              MonthlyCollectionsChart(),
+              const SizedBox(height: 24),
+              RecentLoans(),
+              const SizedBox(height: 24),
+              const OverdueAlert(),
             ],
           ),
         ),

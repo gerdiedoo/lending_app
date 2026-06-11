@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PortfolioCard extends StatelessWidget {
   const PortfolioCard({super.key});
@@ -19,9 +20,30 @@ class PortfolioCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Total Portfolio', style: TextStyle(color: Colors.white70, fontSize: 14)),
+          const Text(
+            'Total Portfolio',
+            style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
           const SizedBox(height: 8),
-          const Text('₱2,845,000', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+          FutureBuilder<double>(
+            future: getPortfolioTotal(),
+            builder: (context, snapshot) {
+              //add PHP currency symbol to the text
+              final text = snapshot.hasData
+                  ? '₱${snapshot.data!.toStringAsFixed(2)}'
+                  : snapshot.hasError
+                      ? 'Error'
+                      : 'Loading...';
+              return Text(
+                text,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -40,10 +62,32 @@ class PortfolioCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
+  }
+
+  Future<double> getPortfolioTotal() async {
+    final response = await Supabase.instance.client
+        .from('loans')
+        .select('principal_amount');
+
+    double total = 0;
+    for (var row in response) {
+      total += (row['principal_amount'] as num).toDouble();
+    }
+    return total;
   }
 }
