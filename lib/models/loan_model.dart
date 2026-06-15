@@ -4,6 +4,8 @@ class Loan {
   final String borrowerPhone;
   final String lenderName;
   final double principalAmount;
+  final double interestRate;
+  final double monthlyInstallment;
   final String status;
   final DateTime createdAt;
   final DateTime loanDate;
@@ -15,6 +17,8 @@ class Loan {
     required this.borrowerPhone,
     required this.lenderName,
     required this.principalAmount,
+    required this.interestRate,
+    required this.monthlyInstallment,
     required this.status,
     required this.createdAt,
     required this.loanDate,
@@ -41,6 +45,8 @@ class Loan {
       borrowerPhone:   json['borrower_phone'] ?? '',
       lenderName:      json['lender_name'] ?? '',
       principalAmount: (json['principal_amount'] as num).toDouble(),
+      interestRate:    (json['interest_rate'] as num?)?.toDouble() ?? 0.0,
+      monthlyInstallment: (json['monthly_installment'] as num?)?.toDouble() ?? 0.0,
       status:          json['status'],
       createdAt:       createdAt,
       loanDate:        loanDate,

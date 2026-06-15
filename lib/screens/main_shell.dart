@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 import 'borrowers_screen.dart';
-import '../screens/empty_screen_template.dart';
+import 'payments_screen.dart';
+import 'reports_screen.dart';
 import '../widgets/bottom_nav_bar.dart';
 
 /// The root shell of the authenticated app.
@@ -28,8 +29,8 @@ class _MainShellState extends State<MainShell> {
   final List<Widget> _screens = [
     const DashboardScreen(),
     const BorrowersScreen(),
-    const EmptyScreenTemplate(title: 'Payments'),
-    const EmptyScreenTemplate(title: 'Reports'),
+    const PaymentsScreen(),
+    const ReportsScreen(),
   ];
 
   @override
