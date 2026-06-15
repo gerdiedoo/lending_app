@@ -3,38 +3,35 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/colors.dart';
 
-class MonthlyCollectionsChart extends StatefulWidget {
-  const MonthlyCollectionsChart({super.key});
+class MonthlyCollectionsChart extends StatelessWidget {
+  MonthlyCollectionsChart({super.key});
 
-  @override
-  State<MonthlyCollectionsChart> createState() =>
-      _MonthlyCollectionsChartState();
-}
+  final _supabase = Supabase.instance.client;
 
-class _MonthlyCollectionsChartState extends State<MonthlyCollectionsChart> {
   static const List<String> _monthLabels = [
     'J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'
   ];
 
-  late Future<List<Map<String, dynamic>>> _dataFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _dataFuture = _fetchData();
-  }
-
-  Future<List<Map<String, dynamic>>> _fetchData() {
-    return Supabase.instance.client
-        .from('monthly_collections')
-        .select('*')
-        .order('month_number', ascending: true);
+  /// Aggregates total principal_amount of 'Paid' loans by month number.
+  /// Mirrors the public.monthly_collections view, computed client-side so
+  /// it can update live via the realtime stream (views aren't streamable).
+  Map<int, double> _aggregate(List<Map<String, dynamic>> rows) {
+    final Map<int, double> totals = {};
+    for (final row in rows) {
+      if (row['status'] != 'Paid') continue;
+      final month = DateTime.parse(row['created_at']).month;
+      final amount = (row['principal_amount'] as num).toDouble();
+      totals[month] = (totals[month] ?? 0) + amount;
+    }
+    return totals;
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _dataFuture,
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _supabase
+          .from('loans')
+          .stream(primaryKey: ['id']),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return Container(
@@ -48,14 +45,8 @@ class _MonthlyCollectionsChartState extends State<MonthlyCollectionsChart> {
           );
         }
 
-        final data = snapshot.data!;
+        final monthTotals = _aggregate(snapshot.data!);
         final currentMonth = DateTime.now().month; // 1–12
-
-        // Build a map from month_number → total_collected for quick lookup
-        final Map<int, double> monthTotals = {
-          for (final e in data)
-            (e['month_number'] as int): (e['total_collected'] as num).toDouble()
-        };
 
         // Build all 12 bar groups, using 0 for months with no data
         final barGroups = List.generate(12, (index) {

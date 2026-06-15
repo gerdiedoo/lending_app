@@ -10,20 +10,13 @@ import '../widgets/recent_loans.dart';
 import '../widgets/overdue_alert.dart';
 import '../widgets/monthly_loans_chart.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
-  @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
-}
-
-class _DashboardScreenState extends State<DashboardScreen> {
-  // Incrementing this key forces FutureBuilder widgets to fully
-  // rebuild and re-fetch their data from Supabase.
-  int _refreshKey = 0;
-
   Future<void> _onRefresh() async {
-    setState(() => _refreshKey++);
+    // The widgets below are backed by realtime StreamBuilders, so they
+    // update automatically. This delay just gives the RefreshIndicator's
+    // spinner a moment to show/hide for a satisfying pull-to-refresh feel.
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
@@ -43,7 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 const Header(),
                 const SizedBox(height: 24),
-                PortfolioCard(key: ValueKey('portfolio_$_refreshKey')),
+                PortfolioCard(),
                 const SizedBox(height: 24),
                 const Text(
                   'Quick Actions',
@@ -56,9 +49,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 16),
                 const CollectionRateCard(),
                 const SizedBox(height: 16),
-                MonthlyCollectionsChart(key: ValueKey('chart_$_refreshKey')),
+                MonthlyCollectionsChart(),
                 const SizedBox(height: 16),
-                MonthlyLoansChart(key: ValueKey('loans_chart_$_refreshKey')),
+                MonthlyLoansChart(),
                 const SizedBox(height: 24),
                 RecentLoans(),
                 const SizedBox(height: 24),

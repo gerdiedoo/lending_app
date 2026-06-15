@@ -2,33 +2,10 @@ import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class PortfolioCard extends StatefulWidget {
-  const PortfolioCard({super.key});
+class PortfolioCard extends StatelessWidget {
+  PortfolioCard({super.key});
 
-  @override
-  State<PortfolioCard> createState() => _PortfolioCardState();
-}
-
-class _PortfolioCardState extends State<PortfolioCard> {
-  late Future<double> _portfolioFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _portfolioFuture = _getPortfolioTotal();
-  }
-
-  Future<double> _getPortfolioTotal() async {
-    final response = await Supabase.instance.client
-        .from('loans')
-        .select('principal_amount');
-
-    double total = 0;
-    for (var row in response) {
-      total += (row['principal_amount'] as num).toDouble();
-    }
-    return total;
-  }
+  final _supabase = Supabase.instance.client;
 
   @override
   Widget build(BuildContext context) {
@@ -50,11 +27,14 @@ class _PortfolioCardState extends State<PortfolioCard> {
             style: TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 8),
-          FutureBuilder<double>(
-            future: _portfolioFuture,
+          StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _supabase
+                .from('loans')
+                .stream(primaryKey: ['id'])
+                .map((rows) => rows),
             builder: (context, snapshot) {
               final text = snapshot.hasData
-                  ? '₱${snapshot.data!.toStringAsFixed(2)}'
+                  ? '₱${_total(snapshot.data!).toStringAsFixed(2)}'
                   : snapshot.hasError
                       ? 'Error'
                       : 'Loading...';
@@ -80,6 +60,14 @@ class _PortfolioCardState extends State<PortfolioCard> {
         ],
       ),
     );
+  }
+
+  double _total(List<Map<String, dynamic>> rows) {
+    double total = 0;
+    for (var row in rows) {
+      total += (row['principal_amount'] as num).toDouble();
+    }
+    return total;
   }
 
   Widget _buildStat(String label, String value) {

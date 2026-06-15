@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
+import 'borrowers_screen.dart';
 import '../screens/empty_screen_template.dart';
 import '../widgets/bottom_nav_bar.dart';
 
@@ -26,7 +27,7 @@ class _MainShellState extends State<MainShell> {
   /// One entry per tab. Order must match [AppBottomNavBar.items].
   final List<Widget> _screens = [
     const DashboardScreen(),
-    const EmptyScreenTemplate(title: 'Borrowers'),
+    const BorrowersScreen(),
     const EmptyScreenTemplate(title: 'Payments'),
     const EmptyScreenTemplate(title: 'Reports'),
   ];

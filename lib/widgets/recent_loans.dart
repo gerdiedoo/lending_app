@@ -88,7 +88,8 @@ class RecentLoans extends StatelessWidget {
       );
     }
 
-    final loans = snapshot.data!.map((j) => Loan.fromJson(j)).toList();
+    final loans = snapshot.data!.map((j) => Loan.fromJson(j)).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return ListView.separated(
       shrinkWrap: true,

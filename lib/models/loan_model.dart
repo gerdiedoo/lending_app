@@ -1,6 +1,7 @@
 class Loan {
   final String id;
   final String borrowerName;
+  final String borrowerPhone;
   final String lenderName;
   final double principalAmount;
   final String status;
@@ -11,6 +12,7 @@ class Loan {
   Loan({
     required this.id,
     required this.borrowerName,
+    required this.borrowerPhone,
     required this.lenderName,
     required this.principalAmount,
     required this.status,
@@ -36,6 +38,7 @@ class Loan {
     return Loan(
       id:              json['id'],
       borrowerName:    json['borrower_name'],
+      borrowerPhone:   json['borrower_phone'] ?? '',
       lenderName:      json['lender_name'] ?? '',
       principalAmount: (json['principal_amount'] as num).toDouble(),
       status:          json['status'],
