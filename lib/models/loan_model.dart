@@ -10,6 +10,8 @@ class Loan {
   final DateTime createdAt;
   final DateTime loanDate;
   final int durationMonths;
+  final DateTime? currentDueDate;
+  final int interestCyclesPaid;
 
   Loan({
     required this.id,
@@ -23,11 +25,25 @@ class Loan {
     required this.createdAt,
     required this.loanDate,
     required this.durationMonths,
+    this.currentDueDate,
+    this.interestCyclesPaid = 0,
   });
 
-  /// The date by which the loan should be fully repaid.
-  /// Calculated from loanDate + durationMonths.
+  /// The amount due for a single interest-only ("rollover") payment:
+  /// the borrower pays just this cycle's interest, the principal stays
+  /// the same, and the due date moves forward one month.
+  double get interestOnlyAmount => principalAmount * (interestRate / 100);
+
+  /// The amount due to fully settle the loan this cycle: principal plus
+  /// the current cycle's interest.
+  double get fullSettlementAmount => principalAmount + interestOnlyAmount;
+
+  /// The next date this loan is due. Uses the rolling `current_due_date`
+  /// if the DB has one (set on creation and advanced by each interest-only
+  /// payment); falls back to the original loanDate + durationMonths
+  /// calculation for legacy rows that predate this column.
   DateTime get dueDate {
+    if (currentDueDate != null) return currentDueDate!;
     final m = loanDate.month + durationMonths;
     return DateTime(loanDate.year + (m - 1) ~/ 12, ((m - 1) % 12) + 1, loanDate.day);
   }
@@ -51,6 +67,10 @@ class Loan {
       createdAt:       createdAt,
       loanDate:        loanDate,
       durationMonths:  (json['duration_months'] as num?)?.toInt() ?? 0,
+      currentDueDate:  json['current_due_date'] != null
+          ? DateTime.parse(json['current_due_date'])
+          : null,
+      interestCyclesPaid: (json['interest_cycles_paid'] as num?)?.toInt() ?? 0,
     );
   }
 }

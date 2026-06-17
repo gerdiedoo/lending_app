@@ -12,46 +12,52 @@ class FinancialStatsRow extends StatelessWidget {
 
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: supabase.from('loans').stream(primaryKey: ['id']),
-      builder: (context, snapshot) {
-        final loans = (snapshot.data ?? []).map((j) => Loan.fromJson(j)).toList();
+      builder: (context, loanSnapshot) {
+        return StreamBuilder<List<Map<String, dynamic>>>(
+          stream: supabase.from('payments').stream(primaryKey: ['id']),
+          builder: (context, paymentSnapshot) {
+            final loans = (loanSnapshot.data ?? []).map((j) => Loan.fromJson(j)).toList();
+            final payments = paymentSnapshot.data ?? [];
 
-        final now = DateTime.now();
-        final today = DateTime(now.year, now.month, now.day);
+            final now = DateTime.now();
 
-        // Collected today: principal of loans marked Paid whose loan_date is today.
-        final collectedToday = loans
-            .where((l) =>
-                l.status == 'Paid' &&
-                l.loanDate.year == today.year &&
-                l.loanDate.month == today.month &&
-                l.loanDate.day == today.day)
-            .fold<double>(0.0, (sum, l) => sum + l.principalAmount);
+            // Collected today: every real payment recorded today, of any
+            // kind (manual, full settlement, or interest-only).
+            final collectedToday = payments
+                .where((p) {
+                  final d = DateTime.parse(p['payment_date']);
+                  return d.year == now.year && d.month == now.month && d.day == now.day;
+                })
+                .fold<double>(0.0, (sum, p) => sum + (p['amount_paid'] as num).toDouble());
 
-        // Pending: outstanding monthly installments for loans not yet Paid.
-        final pending = loans
-            .where((l) => l.status != 'Paid')
-            .fold<double>(0.0, (sum, l) => sum + l.monthlyInstallment);
+            // Pending: total amount currently owed (principal + this cycle's
+            // interest) across all loans not yet Paid.
+            final pending = loans
+                .where((l) => l.status != 'Paid')
+                .fold<double>(0.0, (sum, l) => sum + l.fullSettlementAmount);
 
-        return Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                'Collected Today',
-                '₱${_formatAmount(collectedToday)}',
-                Icons.trending_up,
-                AppColors.success,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildStatCard(
-                'Pending',
-                '₱${_formatAmount(pending)}',
-                Icons.schedule,
-                Colors.grey,
-              ),
-            ),
-          ],
+            return Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    'Collected Today',
+                    '₱${_formatAmount(collectedToday)}',
+                    Icons.trending_up,
+                    AppColors.success,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildStatCard(
+                    'Pending',
+                    '₱${_formatAmount(pending)}',
+                    Icons.schedule,
+                    Colors.grey,
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );

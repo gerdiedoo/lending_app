@@ -380,6 +380,7 @@ class _ActiveLoanRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final due = loan.dueDate;
     final dueLabel = '${kMonthAbbr[due.month - 1]} ${due.day}';
+    final rollovers = loan.interestCyclesPaid;
 
     return GestureDetector(
       onTap: onTap,
@@ -406,7 +407,7 @@ class _ActiveLoanRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '₱${formatAmount(loan.principalAmount)}',
+                    '₱${formatAmount(loan.principalAmount)} principal',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -415,7 +416,8 @@ class _ActiveLoanRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'Due $dueLabel',
+                    'Due $dueLabel · ₱${formatAmount(loan.fullSettlementAmount)} to settle'
+                    '${rollovers > 0 ? ' · rolled over $rollovers×' : ''}',
                     style: TextStyle(color: Colors.grey[500], fontSize: 12),
                   ),
                 ],

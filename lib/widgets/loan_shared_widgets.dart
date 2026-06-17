@@ -234,6 +234,13 @@ class LoanDetailSheet extends StatelessWidget {
           LoanDetailRow(label: 'Due Date',          value: formatDate(loan.dueDate)),
           LoanDetailRow(label: 'Duration',          value: '${loan.durationMonths} months'),
           LoanDetailRow(label: 'Principal Amount',  value: '₱${formatAmount(loan.principalAmount)}'),
+          LoanDetailRow(label: 'Interest Rate',     value: '${loan.interestRate.toStringAsFixed(1)}% / cycle'),
+          if (loan.status != 'Paid') ...[
+            LoanDetailRow(label: 'Interest This Cycle', value: '₱${formatAmount(loan.interestOnlyAmount)}'),
+            LoanDetailRow(label: 'Full Settlement Due', value: '₱${formatAmount(loan.fullSettlementAmount)}'),
+          ],
+          if (loan.interestCyclesPaid > 0)
+            LoanDetailRow(label: 'Rolled Over',     value: '${loan.interestCyclesPaid}× (interest-only)'),
 
           const SizedBox(height: 8),
           Divider(color: Colors.white.withOpacity(0.08)),

@@ -85,16 +85,19 @@ class _CreateLoanScreenState extends State<CreateLoanScreen> {
 
   // ── Summary calculation ────────────────────────────────────────────────────
 
+  /// Under this loan model, the borrower either pays the full amount
+  /// (principal + that cycle's interest) by the due date, or — if unable
+  /// to — pays just the interest for that month, the principal stays the
+  /// same, and the due date rolls forward another month.
   void _calculateSummary() {
     final principal = double.tryParse(_amountController.text) ?? 0.0;
     final rate      = double.tryParse(_interestController.text) ?? 0.0;
-    final months    = int.tryParse(_durationController.text) ?? 0;
 
-    if (principal > 0 && rate > 0 && months > 0) {
-      final totalInterest = principal * (rate / 100) * months;
+    if (principal > 0 && rate > 0) {
+      final interestPerCycle = principal * (rate / 100);
       setState(() {
-        _totalRepayment     = principal + totalInterest;
-        _monthlyInstallment = _totalRepayment / months;
+        _monthlyInstallment = interestPerCycle;
+        _totalRepayment     = principal + interestPerCycle;
       });
     } else {
       setState(() {
@@ -127,6 +130,17 @@ class _CreateLoanScreenState extends State<CreateLoanScreen> {
         _loanDate.day,
       );
 
+      final durationMonths = int.parse(_durationController.text);
+      // First due date: loan_date + duration_months. From here on, every
+      // interest-only payment pushes this one month further; only a full
+      // settlement clears the loan instead of advancing the date.
+      final firstDueMonth = loanDateUtc.month + durationMonths;
+      final currentDueDate = DateTime.utc(
+        loanDateUtc.year + (firstDueMonth - 1) ~/ 12,
+        ((firstDueMonth - 1) % 12) + 1,
+        loanDateUtc.day,
+      );
+
       await supabase.from('loans').insert({
         'manager_id'          : currentUser.id,
         'borrower_name'       : _borrowerNameController.text.trim(),
@@ -134,12 +148,14 @@ class _CreateLoanScreenState extends State<CreateLoanScreen> {
         'borrower_phone'      : _phoneController.text.trim(),
         'principal_amount'    : double.parse(_amountController.text),
         'interest_rate'       : double.parse(_interestController.text),
-        'duration_months'     : int.parse(_durationController.text),
+        'duration_months'     : durationMonths,
         'total_repayment'     : _totalRepayment,
         'monthly_installment' : _monthlyInstallment,
         'status'              : 'Active',
         'created_at'          : loanDateUtc.toIso8601String(),
         'loan_date'           : loanDateUtc.toIso8601String(),
+        'current_due_date'    : currentDueDate.toIso8601String(),
+        'interest_cycles_paid': 0,
       });
 
       if (mounted) {
@@ -401,8 +417,8 @@ class _CreateLoanScreenState extends State<CreateLoanScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Total Repayment',
-                            style: TextStyle(color: Colors.grey)),
+                        const Text('Full Settlement (Principal + Interest)',
+                            style: TextStyle(color: Colors.grey, fontSize: 13)),
                         Text(
                           '₱${_totalRepayment.toStringAsFixed(2)}',
                           style: const TextStyle(
@@ -419,8 +435,8 @@ class _CreateLoanScreenState extends State<CreateLoanScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Monthly Installment',
-                            style: TextStyle(color: Colors.grey)),
+                        const Text('Interest-Only Payment (per cycle)',
+                            style: TextStyle(color: Colors.grey, fontSize: 13)),
                         Text(
                           '₱${_monthlyInstallment.toStringAsFixed(2)}',
                           style: const TextStyle(
@@ -429,6 +445,15 @@ class _CreateLoanScreenState extends State<CreateLoanScreen> {
                               fontWeight: FontWeight.bold),
                         ),
                       ],
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 14.0),
+                      child: Text(
+                        'If the borrower can\'t pay the full amount by the due date, '
+                        'they can instead pay just the interest. The principal stays '
+                        'the same and the due date moves forward one month.',
+                        style: TextStyle(color: Colors.grey, fontSize: 12, height: 1.4),
+                      ),
                     ),
                   ],
                 ),

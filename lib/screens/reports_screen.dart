@@ -31,54 +31,72 @@ class ReportsScreen extends StatelessWidget {
       body: SafeArea(
         child: StreamBuilder<List<Map<String, dynamic>>>(
           stream: supabase.from('loans').stream(primaryKey: ['id']),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+          builder: (context, loanSnapshot) {
+            return StreamBuilder<List<Map<String, dynamic>>>(
+              stream: supabase.from('payments').stream(primaryKey: ['id']),
+              builder: (context, paymentSnapshot) {
+                if (loanSnapshot.connectionState == ConnectionState.waiting ||
+                    paymentSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            final loans = (snapshot.data ?? []).map((j) => Loan.fromJson(j)).toList();
+                final loans = (loanSnapshot.data ?? []).map((j) => Loan.fromJson(j)).toList();
+                final payments = paymentSnapshot.data ?? [];
+                final loansById = {for (final l in loans) l.id: l};
 
-            // ── Derived metrics ──────────────────────────────────
-            // Total interest earned across all loans:
-            // interest = total_repayment-equivalent (principal * rate/100)
-            final totalInterest = loans.fold<double>(
-              0.0,
-              (sum, l) => sum + (l.principalAmount * l.interestRate / 100),
-            );
+                // ── Derived metrics ──────────────────────────────────
+                // Total interest earned: actual interest collected so far.
+                //  - interest_only payments are 100% interest.
+                //  - full settlements include interest on top of principal;
+                //    looked up via loan_id to get that loan's exact rate.
+                double totalInterest = 0.0;
+                for (final p in payments) {
+                  final kind = p['kind'] ?? 'manual';
+                  final amount = (p['amount_paid'] as num).toDouble();
+                  if (kind == 'interest_only') {
+                    totalInterest += amount;
+                  } else if (kind == 'full') {
+                    final loan = loansById[p['loan_id']];
+                    if (loan != null && loan.interestRate > 0) {
+                      totalInterest += amount * loan.interestRate / (100 + loan.interestRate);
+                    }
+                  }
+                }
 
-            final totalCount = loans.length;
-            final activeCount = loans.where((l) => l.status == 'Active').length;
-            final paidCount = loans.where((l) => l.status == 'Paid').length;
-            final overdueCount = loans.where((l) => l.status == 'Overdue').length;
-            final pendingCount = loans.where((l) => l.status == 'Pending').length;
+                final totalCount = loans.length;
+                final activeCount = loans.where((l) => l.status == 'Active').length;
+                final paidCount = loans.where((l) => l.status == 'Paid').length;
+                final overdueCount = loans.where((l) => l.status == 'Overdue').length;
+                final pendingCount = loans.where((l) => l.status == 'Pending').length;
 
-            final collectedAmount = loans
-                .where((l) => l.status == 'Paid')
-                .fold<double>(0.0, (sum, l) => sum + l.principalAmount);
-            final totalPrincipal = loans.fold<double>(0.0, (sum, l) => sum + l.principalAmount);
-            final collectionRate = totalPrincipal == 0 ? 0.0 : (collectedAmount / totalPrincipal) * 100;
+                final collectedAmount = loans
+                    .where((l) => l.status == 'Paid')
+                    .fold<double>(0.0, (sum, l) => sum + l.principalAmount);
+                final totalPrincipal = loans.fold<double>(0.0, (sum, l) => sum + l.principalAmount);
+                final collectionRate = totalPrincipal == 0 ? 0.0 : (collectedAmount / totalPrincipal) * 100;
 
-            // Projected revenue: sum of monthly_installment for loans
-            // still active/pending/overdue, as a rough "next 30 days" figure.
-            final projectedRevenue = loans
-                .where((l) => l.status != 'Paid')
-                .fold<double>(0.0, (sum, l) => sum + l.monthlyInstallment);
+                // Projected revenue: interest income expected from loans still
+                // outstanding — principal returning isn't revenue, the interest
+                // collected on it is.
+                final projectedRevenue = loans
+                    .where((l) => l.status != 'Paid')
+                    .fold<double>(0.0, (sum, l) => sum + l.interestOnlyAmount);
 
-            // Monthly collections for the current year (Jan-Jun shown,
-            // matching the mockup's 6-month window).
-            final now = DateTime.now();
-            final Map<int, double> monthlyCollections = {};
-            for (final l in loans) {
-              if (l.status != 'Paid') continue;
-              if (l.loanDate.year != now.year) continue;
-              monthlyCollections[l.loanDate.month] =
-                  (monthlyCollections[l.loanDate.month] ?? 0) + l.principalAmount;
-            }
+                // Monthly collections for the current year (Jan-Jun shown,
+                // matching the mockup's 6-month window).
+                final now = DateTime.now();
+                final Map<int, double> monthlyCollections = {};
+                for (final l in loans) {
+                  if (l.status != 'Paid') continue;
+                  if (l.loanDate.year != now.year) continue;
+                  monthlyCollections[l.loanDate.month] =
+                      (monthlyCollections[l.loanDate.month] ?? 0) + l.principalAmount;
+                }
 
-            return SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-              child: Column(
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                  child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Total interest earned ──────────────────────
@@ -367,6 +385,8 @@ class ReportsScreen extends StatelessWidget {
                   ),
                 ],
               ),
+            );
+              },
             );
           },
         ),
